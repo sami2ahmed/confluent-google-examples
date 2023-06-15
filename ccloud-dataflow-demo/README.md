@@ -12,21 +12,25 @@ Using GCP Dataflow and Confluent Cloud to create a raffle system
 
 ## GCP 
 1. Login to your GCP console. Within Bigquery, create two datasets: `promotions` and `raffle_dataset` with multi-region set to `US`. No other settings are required. With `promotions` run this sql to create necessary fields: 
-```CREATE TABLE <your project>.promotions.dailygiftcardwinners (
+```
+CREATE TABLE <your project>.promotions.dailygiftcardwinners (
   day DATE,
   winnernumber INTEGER,
   promocode STRING,
-)```
+)
+```
 
 2. Launch a Cloud shell terminal and authenticate `gcloud auth login` make sure you are using your desired project `gcloud config set project <project-name>`
 3. git clone this repo using the Cloud shell i.e. `https://github.com/confluentinc/confluent-google-examples` and then `cd confluent-google-examples/ccloud-dataflow-demo`
 4. Configure your `beam-demo.config` in the repo's entry-producer directory with your Confluent Cloud connection details, example below:
 
 bootstrap server can be found in `cluster settings` of the CC dashboard. The sasl username/password is your api key/secret from earlier.
-``` bootstrap.servers=pkc-xxxxx.us-east4.gcp.confluent.cloud:9092 
+``` 
+bootstrap.servers=pkc-xxxxx.us-east4.gcp.confluent.cloud:9092 
 sasl.mechanisms=PLAIN
 sasl.username=
-sasl.password=```
+sasl.password=
+```
 
 5. Within the `DataflowPipeline.java` in the `entry-df-pipeline` directory, you need to input all instances of `<your-bootstrap-server>` from your CC cluster (example:`pkc-xy2aa.us-east-2.gcp.confluent.cloud:9092`)
 
@@ -52,18 +56,22 @@ Example, you will need to replace with your CC creds that ypu downloaded earlier
 Then feed the base64 encoded key/secret into the data (after plaintext in the <>) fields of these commands. You will also need to configure your project, location, keyring, and key usr/pwd accordingly: 
 
 ### encrypt your CC key with base64 cred, replace all <>
-```curl "https://cloudkms.googleapis.com/v1/projects/<>/locations/<>/keyRings/<>/cryptoKeys/<>:encrypt" \
+```
+curl "https://cloudkms.googleapis.com/v1/projects/<>/locations/<>/keyRings/<>/cryptoKeys/<>:encrypt" \
 --request "POST" \
 --header "authorization: Bearer $accesstoken" \
 --header "content-type: application/json" \
---data "{\"plaintext\": \"<>\"}"```
+--data "{\"plaintext\": \"<>\"}"
+```
 
 ### encrypt CC pwd with base64 cred, replace all <>
-```curl "https://cloudkms.googleapis.com/v1/projects/<>/locations/<>/keyRings/<>/cryptoKeys/<>:encrypt" \
+```
+curl "https://cloudkms.googleapis.com/v1/projects/<>/locations/<>/keyRings/<>/cryptoKeys/<>:encrypt" \
 --request "POST" \
 --header "authorization: Bearer $accesstoken" \
 --header "content-type: application/json" \
---data "{\"plaintext\": \"<>\"}"```
+--data "{\"plaintext\": \"<>\"}"
+```
 
 7. save the `cipertext` outputted by the encryption process so we can use it in our dataflow process later on. 
 
@@ -77,9 +85,11 @@ Then feed the base64 encoded key/secret into the data (after plaintext in the <>
 2. cd into the `entry-df-pipeline` dir, and compile the project `mvn package` 
 3. check if the producer is still running, if not kick off more entries, then run dataflow:
 
-```java -jar target/ccloud-dataflow-demo-1.0-SNAPSHOT.jar --runner=DataflowRunner --project=<> --region=us-east4 --keyRing=<> --stagingLocation=gs://<>/stg --tempLocation=gs://<>/temp --kmsUsernameKeyId=cflt-usr --confluentCloudEncryptedUsername=<> --kmsPasswordKeyId=cflt-pwd --confluentCloudEncryptedPassword=<>```
+```
+java -jar target/ccloud-dataflow-demo-1.0-SNAPSHOT.jar --runner=DataflowRunner --project=<> --region=us-east4 --keyRing=<> --stagingLocation=gs://<>/stg --tempLocation=gs://<>/temp --kmsUsernameKeyId=cflt-usr --confluentCloudEncryptedUsername=<> --kmsPasswordKeyId=cflt-pwd --confluentCloudEncryptedPassword=<>
+```
 
-# should see data flowing into final topic called application in confluent by the end, this might take a few moments 
+You should see data flowing into final topic called application in CC by the end, this might take a few moments 
 
 
 
