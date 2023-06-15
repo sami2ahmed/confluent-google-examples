@@ -12,22 +12,25 @@ Using GCP Dataflow and Confluent Cloud to create a raffle system
 
 ## GCP 
 1. Login to your GCP console. Within Bigquery, create two datasets: `promotions` and `raffle_dataset` with multi-region set to `US`. No other settings are required. With `promotions` run this sql to create necessary fields: 
-
+```
 CREATE TABLE <your project>.promotions.dailygiftcardwinners (
   day DATE,
   winnernumber INTEGER,
   promocode STRING,
 )
+```
 
 2. Launch a Cloud shell terminal and authenticate `gcloud auth login` make sure you are using your desired project `gcloud config set project <project-name>`
 3. git clone this repo using the Cloud shell i.e. `https://github.com/confluentinc/confluent-google-examples` and then `cd confluent-google-examples/ccloud-dataflow-demo`
 4. Configure your `beam-demo.config` in the repo's entry-producer directory with your Confluent Cloud connection details, example below:
 
-### bootstrap server can be found in `cluster settings` of the CC dashboard. The sasl username/password is your api key/secret from earlier. 
+bootstrap server can be found in `cluster settings` of the CC dashboard. The sasl username/password is your api key/secret from earlier.
+``` 
 bootstrap.servers=pkc-xxxxx.us-east4.gcp.confluent.cloud:9092 
 sasl.mechanisms=PLAIN
 sasl.username=
 sasl.password=
+```
 
 5. Within the `DataflowPipeline.java` in the `entry-df-pipeline` directory, you need to input all instances of `<your-bootstrap-server>` from your CC cluster (example:`pkc-xy2aa.us-east-2.gcp.confluent.cloud:9092`)
 
@@ -36,10 +39,10 @@ sasl.password=
 8. Do the same for keyname of `cflt-pwd`. 
 10. Navigate to Cloud Storage in the console and create `stg` and `temp` buckets. Both in `us-east4`. 
 
-## setup a SA to be used for access token 
+### setup a SA to be used for access token 
 1. in GCP console, Navigate to Service accounts in the GCP console and create a Service account. Make it a role of owner and name it whatever you would like. Grant yourself service account users role and admins role. Go to Keys > add key > JSON key and download it. 
 
-### example curl commands below to do encryption process. You will need to replace with your own unique paths. I like to do this locally for some reason, im sure could be done in gcloud cli  
+### example curl commands below to do encryption process. You will need to replace with your own unique paths. I like to do this locally for some reason, sure could be done in gcloud shell  
 1. gcloud auth login
 2. gcloud config set project <project-name>
 3. set GOOGLE_APPLICATION_CREDENTIALS=<path-to-creds>
@@ -47,19 +50,19 @@ sasl.password=
 6. base 64 encode apikey/secret from CC, and save the output to a local file: 
 
 Example, you will need to replace with your CC creds that ypu downloaded earlier:
-echo -n '<>' | base64
-echo -n '<>' | base64
+`echo -n '<>' | base64`
+`echo -n '<>' | base64`
 
-Then feed the base64 encoded key/secret into the data (after plaintext) fields of these commands. You will also need to configure your project, location, keyring, and key usr/pwd accordingly: 
+Then feed the base64 encoded key/secret into the data (after plaintext in the <>) fields of these commands. You will also need to configure your project, location, keyring, and key usr/pwd accordingly: 
 
-# encrypt your CC key with base64 cred, replace all <>
+### encrypt your CC key with base64 cred, replace all <>
 curl "https://cloudkms.googleapis.com/v1/projects/<>/locations/<>/keyRings/<>/cryptoKeys/<>:encrypt" \
 --request "POST" \
 --header "authorization: Bearer $accesstoken" \
 --header "content-type: application/json" \
 --data "{\"plaintext\": \"<>\"}"
 
-# encrypt CC pwd with base64 cred, replace all <>
+### encrypt CC pwd with base64 cred, replace all <>
 curl "https://cloudkms.googleapis.com/v1/projects/<>/locations/<>/keyRings/<>/cryptoKeys/<>:encrypt" \
 --request "POST" \
 --header "authorization: Bearer $accesstoken" \
@@ -70,7 +73,7 @@ curl "https://cloudkms.googleapis.com/v1/projects/<>/locations/<>/keyRings/<>/cr
 
 # Run Producer
 1. In GCP Cloud shell, cd into the `entry-producer` dir and `pip install -r requirements.txt` 
-2. Create a data output file i.e. ` touch data.out` 
+2. Create a data output file i.e. `touch data.out` 
 3. Kickoff your producer with a large number of entries. Note your dataflow will not run if the producer stops emitting records: `python producer.py -f beam-demo.config -t entries -m 4000`. You can simply restart the producer with the same command (nondestructive action) to emit more entries. 
 
 # Run Dataflow 
@@ -78,8 +81,9 @@ curl "https://cloudkms.googleapis.com/v1/projects/<>/locations/<>/keyRings/<>/cr
 2. cd into the `entry-df-pipeline` dir, and compile the project `mvn package` 
 3. check if the producer is still running, if not kick off more entries, then run dataflow:
 
-example: 
+```
 java -jar target/ccloud-dataflow-demo-1.0-SNAPSHOT.jar --runner=DataflowRunner --project=<> --region=us-east4 --keyRing=<> --stagingLocation=gs://<>/stg --tempLocation=gs://<>/temp --kmsUsernameKeyId=cflt-usr --confluentCloudEncryptedUsername=<> --kmsPasswordKeyId=cflt-pwd --confluentCloudEncryptedPassword=<>
+```
 
 # should see data flowing into final topic called application in confluent by the end, this might take a few moments 
 
